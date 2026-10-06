@@ -1,14 +1,16 @@
 import { useState } from "react";
 
-function Form(props) {
-  const [name, setName] = useState('');
+function Form({ addTask }) {
+  const [name, setName] = useState("");
 
-  // NOTE: As written, this function has a bug: it doesn't prevent the user
-  // from submitting an empty form. This is left as an exercise for developers
-  // working through MDN's React tutorial.
   function handleSubmit(event) {
     event.preventDefault();
-    props.addTask(name);
+
+    if (name.trim() === "") {
+      return;
+    }
+
+    addTask(name.trim());
     setName("");
   }
 
@@ -19,7 +21,7 @@ function Form(props) {
   return (
     <form onSubmit={handleSubmit}>
       <h2 className="label-wrapper">
-        <label htmlFor="new-todo-input" className="label__lg">
+        <label htmlFor="new-todo-input">
           What needs to be done?
         </label>
       </h2>
@@ -33,7 +35,11 @@ function Form(props) {
         value={name}
         onChange={handleChange}
       />
-      <button type="submit" className="btn btn__primary btn__lg">
+
+      <button
+        type="submit"
+        className="btn btn__primary btn__lg"
+      >
         Add
       </button>
     </form>

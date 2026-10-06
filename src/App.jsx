@@ -1,16 +1,26 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Form from "./components/Form";
 import FilterButton from "./components/FilterButton";
 import Todo from "./components/Todo";
-import { nanoid } from "nanoid";
+import usePersistedState from "./hooks/usePersistedState";
 
-function usePrevious(value) {
-  const ref = useRef(null);
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-}
+const initialTasks = [
+  {
+    id: 0,
+    name: "Eat",
+    completed: true,
+  },
+  {
+    id: 1,
+    name: "Sleep",
+    completed: false,
+  },
+  {
+    id: 2,
+    name: "Repeat",
+    completed: false,
+  },
+];
 
 const FILTER_MAP = {
   All: () => true,
@@ -20,43 +30,66 @@ const FILTER_MAP = {
 
 const FILTER_NAMES = Object.keys(FILTER_MAP);
 
-function App(props) {
-  const [tasks, setTasks] = useState(props.tasks);
+function App() {
+  const [tasks, setTasks] = usePersistedState(
+    "todo-tasks",
+    initialTasks
+  );
+
   const [filter, setFilter] = useState("All");
 
+  function addTask(name) {
+    const newTask = {
+      id: Date.now(),
+      name: name,
+      completed: false,
+    };
+
+    setTasks([...tasks, newTask]);
+  }
+
   function toggleTaskCompleted(id) {
-    const updatedTasks = tasks.map((task) => {
-      // if this task has the same ID as the edited task
-      if (id === task.id) {
-        // use object spread to make a new obkect
-        // whose `completed` prop has been inverted
-        return { ...task, completed: !task.completed };
-      }
-      return task;
-    });
-    setTasks(updatedTasks);
+    setTasks(
+      tasks.map((task) => {
+        if (task.id === id) {
+          return {
+            ...task,
+            completed: !task.completed,
+          };
+        }
+
+        return task;
+      })
+    );
   }
 
   function deleteTask(id) {
-    const remainingTasks = tasks.filter((task) => id !== task.id);
-    setTasks(remainingTasks);
+    setTasks(
+      tasks.filter((task) => task.id !== id)
+    );
   }
 
   function editTask(id, newName) {
-    const editedTaskList = tasks.map((task) => {
-      // if this task has the same ID as the edited task
-      if (id === task.id) {
-        // Copy the task and update its name
-        return { ...task, name: newName };
-      }
-      // Return the original task if it's not the edited task
-      return task;
-    });
-    setTasks(editedTaskList);
+    setTasks(
+      tasks.map((task) => {
+        if (task.id === id) {
+          return {
+            ...task,
+            name: newName,
+          };
+        }
+
+        return task;
+      })
+    );
   }
 
+  const tasksRemaining = tasks.filter(
+    (task) => !task.completed
+  ).length;
+
   const taskList = tasks
-    ?.filter(FILTER_MAP[filter])
+    .filter(FILTER_MAP[filter])
     .map((task) => (
       <Todo
         id={task.id}
@@ -78,35 +111,25 @@ function App(props) {
     />
   ));
 
-  function addTask(name) {
-    const newTask = { id: "todo-" + nanoid(), name: name, completed: false };
-    setTasks([...tasks, newTask]);
-  }
-
-  const tasksNoun = taskList.length !== 1 ? "tasks" : "task";
-  const headingText = `${taskList.length} ${tasksNoun} remaining`;
-
-  const listHeadingRef = useRef(null);
-  const prevTaskLength = usePrevious(tasks.length);
-
-  useEffect(() => {
-    if (tasks.length < prevTaskLength) {
-      listHeadingRef.current.focus();
-    }
-  }, [tasks.length, prevTaskLength]);
-
   return (
     <div className="todoapp stack-large">
       <h1>TodoMatic</h1>
+
       <Form addTask={addTask} />
-      <div className="filters btn-group stack-exception">{filterList}</div>
-      <h2 id="list-heading" tabIndex="-1" ref={listHeadingRef}>
-        {headingText}
+
+      <div className="filters btn-group stack-exception">
+        {filterList}
+      </div>
+
+      <h2 id="list-heading">
+        {tasksRemaining}{" "}
+        {tasksRemaining === 1 ? "task" : "tasks"} remaining
       </h2>
+
       <ul
-        aria-labelledby="list-heading"
-        className="todo-list stack-large stack-exception"
         role="list"
+        className="todo-list stack-large stack-exception"
+        aria-labelledby="list-heading"
       >
         {taskList}
       </ul>
